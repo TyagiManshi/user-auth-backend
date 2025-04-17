@@ -72,124 +72,192 @@ const registerUser = async (req, res) => {
         pass: process.env.MAILTRAP_PASSWORD,
       },
     });
-  
-    
-    const mailOption = {
-        from: process.env.MAILTRAP_SENDEREMAIL,  
-        to: user.email,
-        subject: "Verify you email", 
-        text: `Please click on the following link :
-        ${process.env.BASE_URL}/api/v1/users/verify/${token}
-        `
-    }
 
-    await transporter.sendMail(mailOption)
+    const mailOption = {
+      from: process.env.MAILTRAP_SENDEREMAIL,
+      to: user.email,
+      subject: "Verify you email",
+      text: `Please click on the following link :
+        ${process.env.BASE_URL}/api/v1/users/verify/${token}
+        `,
+    };
+
+    await transporter.sendMail(mailOption);
 
     res.status(201).json({
-        message: "User Registered succeessfully",
-        success: true
-    })
-
-
+      message: "User Registered succeessfully",
+      success: true,
+    });
   } catch (error) {
     res.status(400).json({
-        message: "User not registered",
-        error: error.message,
-        success: false
-    })
+      message: "User not registered",
+      error: error.message,
+      success: false,
+    });
   }
 };
 
-
 const verifyUser = async (req, res) => {
-
   // get token from url
   // validate
   // find user based on token
-  // if not then 
+  // if not then
   // set isVerified field to true
   // remove verification token
   // save
   // return response
 
-  const { token } = req.params 
-  if(!token){
+  const { token } = req.params;
+  if (!token) {
     return res.status(400).json({
-      message: "Invalid token"
-    })
+      message: "Invalid token",
+    });
   }
 
-  const user = await User.findOne({verificationToken: token})
+  const user = await User.findOne({ verificationToken: token });
 
-  if(!user){
+  if (!user) {
     return res.status(400).json({
-      message: "Invalid token. User not found"
-    })
+      message: "Invalid token. User not found",
+    });
   }
 
-  user.isVerified = true
+  user.isVerified = true;
 
-  user.verificationToken = undefined
+  user.verificationToken = undefined;
 
   await user.save();
 
   return res.status(201).json({
-    message: "User verified successfully"
-  })
-
-}
+    message: "User verified successfully",
+  });
+};
 
 const login = async (req, res) => {
-  const {email, password} = req.body
+  const { email, password } = req.body;
 
-  if(!email || !password){
+  if (!email || !password) {
     return res.status(400).json({
-      message: "All fields are required."
-    })
+      message: "All fields are required.",
+    });
   }
 
   try {
-    const user = await User.findOne({email})
-    if(!email || !password){
+    const user = await User.findOne({ email });
+    if (!email || !password) {
       return res.status(400).json({
-        message: "Invalid email or password"
-      })
+        message: "Invalid email or password",
+      });
     }
 
-    const isMatch = await bcrypt.compare(password, user.password)
+    const isMatch = await bcrypt.compare(password, user.password);
 
-    if(!isMatch){
+    if (!isMatch) {
       return res.status(400).json({
-        message: "nvalid email or password"
-      })
+        message: "nvalid email or password",
+      });
     }
 
-    const token = jwt.sign({id: user._id}, 
-      "shhhh",
-      {
-        expiresIn: '24h'
-      }
-    );
+    const token = jwt.sign({ id: user._id }, "shhhh", {
+      expiresIn: "24h",
+    });
 
     const cookieOptions = {
       httpOnly: true,
       secure: true,
-      maxAge: 24*60*60*1000
-    }
-    res.cookie("token", token, cookieOptions)
+      maxAge: 24 * 60 * 60 * 1000,
+    };
+    res.cookie("token", token, cookieOptions);
 
     res.status(200).json({
       message: "Login successful",
-      success: true
-    })
-
+      success: true,
+    });
   } catch (error) {
     return res.status(400).json({
       message: "Login failed",
-      error: error.message
-    })
+      error: error.message,
+    });
   }
+};
 
-}
+const getMet = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("-password");
 
-export { registerUser, verifyUser, login };
+    if (!user) {
+      return res.status(400).json({
+        message: "User not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      user,
+    });
+    
+  } catch (error) {
+    return res.status(500).json({
+      message: "User not found",
+    });
+  }
+};
+
+const logoutUser = async (req, res) => {
+  try {
+    res.cookie("token", "");
+    return res.status(200).json({
+      message: "Logged out successfully",
+      success: true,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: "Logout failed",
+    });
+  }
+};
+
+const forgotPassword = async (req, res) => {
+  try {
+    // get email
+    // find user based on email
+    // reset token
+    // reset expiry => Date.now() + 10*60*1000
+    // send email => design url
+
+  } catch (error) {}
+};
+
+const resetPassword = async (req, res) => {
+  try {
+    // collect token from params
+    // password from req.body
+
+    const {token} = req.params
+    const {password} = req.body
+
+    try {
+      const user = await User.findOne({
+        resetPasswordToken: token,
+        resetPasswordExpires: {$gt: Date.now()}
+      })
+
+      // set password in user
+      // reset token, resetExpiry => reset to empty
+      // save
+
+    } catch (error) {
+      
+    }
+  } catch (error) {}
+};
+
+export {
+  registerUser,
+  verifyUser,
+  login,
+  getMet,
+  forgotPassword,
+  resetPassword,
+  logoutUser,
+};
