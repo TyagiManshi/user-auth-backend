@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/auth-banner.jpg" alt="User Authentication Backend Banner" width="100%">
+  <img src="https://supertokens.com/covers/user-authentication-in-node.png" alt="User Authentication Backend Banner" width="100%">
 </p>
 
 <div align="center">
