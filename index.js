@@ -26,6 +26,7 @@ app.use(cookieParser());
 
 const port = process.env.PORT || 4000;
 
+// Connect to db
 db();
 
 // user routes 

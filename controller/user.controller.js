@@ -3,6 +3,9 @@ import crypto from "crypto";
 import nodemailer from "nodemailer";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const registerUser = async (req, res) => {
   // get data
@@ -158,7 +161,7 @@ const login = async (req, res) => {
       });
     }
 
-    const token = jwt.sign({ id: user._id }, "shhhh", {
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
       expiresIn: "24h",
     });
 
@@ -170,7 +173,7 @@ const login = async (req, res) => {
     res.cookie("token", token, cookieOptions);
 
     res.status(200).json({
-      message: "Login successful",
+      message: "Login successfull",
       success: true,
     });
   } catch (error) {
@@ -181,7 +184,7 @@ const login = async (req, res) => {
   }
 };
 
-const getMet = async (req, res) => {
+const getMe = async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select("-password");
 
@@ -225,11 +228,48 @@ const forgotPassword = async (req, res) => {
     // reset expiry => Date.now() + 10*60*1000
     // send email => design url
 
-  } catch (error) {}
+    const {email} = req.body;
+    const user = await User.findOne( { email } );
+    const token = crypto.randomBytes(32).toString("hex");
+    user.resetPasswordToken = token;
+    user.resetPasswordExpires = Date.now() + 10 * 60 * 1000;
+    await user.save();
+
+    const transporter = nodemailer.createTransport({
+      host: process.env.MAILTRAP_HOST,
+      port: process.env.MAILTRAP_PORT,
+      secure: false, // true for port 465, false for other ports
+      auth: {
+        user: process.env.MAILTRAP_USERNAME,
+        pass: process.env.MAILTRAP_PASSWORD,
+      },
+    });
+
+    const mailOption = {
+      from: process.env.MAILTRAP_SENDEREMAIL,
+      to: user.email,
+      subject: "Reset your password",
+      text: `Please click on the following link to reset your password:
+        ${process.env.BASE_URL}/api/v1/users/resetPassword/${token}
+        `,
+    };
+
+    await transporter.sendMail(mailOption);
+
+    return res.status(200).json( {
+      message: "Check your email inbox to reset your password"
+    } )
+
+  } catch (error) {
+    return res.status(400).json({
+        message: "Something wrong went...user not found"
+    }) 
+  }
 };
 
 const resetPassword = async (req, res) => {
   try {
+    
     // collect token from params
     // password from req.body
 
@@ -256,7 +296,7 @@ export {
   registerUser,
   verifyUser,
   login,
-  getMet,
+  getMe,
   forgotPassword,
   resetPassword,
   logoutUser,
