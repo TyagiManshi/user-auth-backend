@@ -157,7 +157,7 @@ const login = async (req, res) => {
 
     if (!isMatch) {
       return res.status(400).json({
-        message: "nvalid email or password",
+        message: "Invalid email or password",
       });
     }
 
@@ -269,27 +269,31 @@ const forgotPassword = async (req, res) => {
 
 const resetPassword = async (req, res) => {
   try {
-    
-    // collect token from params
-    // password from req.body
+    const { token } = req.params;
+    const { password } = req.body;
 
-    const {token} = req.params
-    const {password} = req.body
+    // 1. find user with valid token and expiry
+    const user = await User.findOne({
+      resetPasswordToken: token,
+      resetPasswordExpires: { $gt: Date.now() },
+    });
 
-    try {
-      const user = await User.findOne({
-        resetPasswordToken: token,
-        resetPasswordExpires: {$gt: Date.now()}
-      })
-
-      // set password in user
-      // reset token, resetExpiry => reset to empty
-      // save
-
-    } catch (error) {
-      
+    if (!user) {
+      return res.status(400).json({ message: "Invalid or expired token" });
     }
-  } catch (error) {}
+
+    // 2. assign plain password (pre-save hook will hash it)
+    user.password = password;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+
+    await user.save();
+
+    res.status(200).json({ message: "Password reset successful" });
+  } catch (error) {
+    console.error("Reset password error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
 };
 
 export {

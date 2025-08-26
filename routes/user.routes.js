@@ -10,6 +10,6 @@ router.post("/login", login)
 router.get("/profile", isLoggedIn, getMe)
 router.get("/logout", isLoggedIn, logoutUser)
 router.get("/forgotPassword", isLoggedIn, forgotPassword)
-router.get("/restPassword", isLoggedIn, resetPassword)
+router.get("/resetPassword/:token", resetPassword)
 
 export default router;
